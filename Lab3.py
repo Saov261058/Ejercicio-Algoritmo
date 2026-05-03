@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 
 st.set_page_config(page_title="DataInsight Analytics", layout="wide")
-st.title("DataInsight Analytics - Laboratorio 2")
+st.title("Laboratorio 3")
 
 path = os.getcwd()
 
