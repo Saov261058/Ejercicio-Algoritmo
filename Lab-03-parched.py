@@ -16,9 +16,12 @@ path = os.getcwd()
 
 # CARGA DE DATOS 
 vehiculo = pd.read_csv(f"{path}/Electric_Vehicle_Population-2.csv")
-gym      = pd.read_csv(f"{path}/GymExerciseTracking.csv")
-nf       = pd.read_csv(f"{path}/netflix_titles.csv")
-steam    = pd.read_csv(f"{path}/steam_store_data_2024.csv")
+
+gym = pd.read_csv(f"{path}/GymExerciseTracking.csv")
+gym.columns = gym.columns.str.strip().str.replace(" ", "_")
+
+nf = pd.read_csv(f"{path}/netflix_titles.csv")
+steam = pd.read_csv(f"{path}/steam_store_data_2024.csv")
 
 # LIMPIEZA 
 steam["Precio"] = steam["price"].str.replace(r"[^\d.]", "", regex=True).astype(float)
@@ -84,51 +87,51 @@ with tab1:
     st.write("Media MSRP:", vehiculo["Base_MSRP"].mean())
     guardar(vehiculo, "Electric_Vehicle_Population_Actualizado.csv")
 
-    # ===================== PREGUNTAS CLAVE =====================
+    # PREGUNTAS CLAVE
     st.header("5. Preguntas Clave")
 
     st.subheader("Relación Rango vs Año")
-    corr1 = vehiculo[["Electric_Range", "Model Year"]].corr()
-    st.write("Correlación:")
-    st.dataframe(corr1)
+    st.dataframe(vehiculo[["Electric_Range", "Model Year"]].corr())
 
     st.subheader("Relación Precio vs Rango")
-    corr2 = vehiculo[["Base_MSRP", "Electric_Range"]].corr()
-    st.write("Correlación:")
-    st.dataframe(corr2)
+    st.dataframe(vehiculo[["Base_MSRP", "Electric_Range"]].corr())
 
 # GIMNASIO
 with tab2:
     st.header("1. Exploracion Inicial")
     exploracion(gym)
+    st.write(gym.columns)
 
     st.header("3. Filtrado")
-    st.dataframe(gym[gym["Calories_Burned"] >= st.number_input("Calorias >=", 0.0)].head(20))
+    col_duracion = [col for col in gym.columns if "Session" in col or "Duration" in col][0]
+    st.dataframe(gym[["Calories_Burned", col_duracion]].corr())
     st.dataframe(gym[gym["Fat_Percentage"] <= st.number_input("Grasa <=", 0.0, 100.0, 25.0)].head(20))
 
     st.header("4. Avanzado")
-    gym["NivelFrecuencia"] = pd.cut(gym["Workout_Frequency"],
-                                    bins=[-1,2,5,7],
-                                    labels=["Baja","Moderada","Alta"])
+    col_freq = [col for col in gym.columns if "Frequency" in col][0]
+
+    gym["NivelFrecuencia"] = pd.cut(gym[col_freq],
+                               bins=[-1,2,5,7],
+                               labels=["Baja","Moderada","Alta"])
     conteo = gym["NivelFrecuencia"].value_counts()
     st.dataframe(conteo)
     grafico(conteo, "Frecuencia Gimnasio", "Nivel", "Cantidad")
 
-    st.write("Media Session Duration:", gym["Session_Duration"].mean())
+    col_duracion = [col for col in gym.columns if "Session" in col or "Duration" in col][0]
+    st.write("Media Session Duration:", gym[col_duracion].mean())
     guardar(gym, "GymExerciseTracking_Actualizado.csv")
 
-    # ===================== PREGUNTAS CLAVE =====================
+    # PREGUNTAS CLAVE
     st.header("5. Preguntas Clave")
 
     st.subheader("Calorias vs Duracion")
-    corr3 = gym[["Calories_Burned", "Session_Duration"]].corr()
-    st.dataframe(corr3)
+    col_duracion = [col for col in gym.columns if "Session" in col or "Duration" in col][0]
+    st.dataframe(gym[["Calories_Burned", col_duracion]].corr())
 
     st.subheader("Grasa vs Experiencia")
-    grupo = gym.groupby("Experience_Level")["Fat_Percentage"].mean()
-    st.dataframe(grupo)
+    st.dataframe(gym.groupby("Experience_Level")["Fat_Percentage"].mean())
 
-# STEAM 
+# STEAM
 with tab3:
     st.header("1. Exploracion Inicial")
     exploracion(steam)
@@ -148,21 +151,16 @@ with tab3:
     st.write("Media Precio:", steam["Precio"].mean())
     guardar(steam, "steam_store_data_2024_Actualizado.csv")
 
-    # ===================== PREGUNTAS CLAVE =====================
+    # PREGUNTAS CLAVE
     st.header("5. Preguntas Clave")
 
     if "review_score" in steam.columns:
-        st.subheader("Calificacion por Gama")
-        grupo2 = steam.groupby("GamaJuego")["review_score"].mean()
-        st.dataframe(grupo2)
-
-        st.subheader("Top juegos mejor calificados")
-        top = steam.sort_values("review_score", ascending=False).head(10)
-        st.dataframe(top[["name","Precio","review_score"]])
+        st.dataframe(steam.groupby("GamaJuego")["review_score"].mean())
+        st.dataframe(steam.sort_values("review_score", ascending=False).head(10)[["name","Precio","review_score"]])
     else:
         st.warning("No existe columna de calificaciones en el dataset")
 
-# NETFLIX 
+# NETFLIX
 with tab4:
     st.header("1. Exploracion Inicial")
     exploracion(nf)
@@ -186,13 +184,8 @@ with tab4:
     st.write("Duracion promedio:", nf["DuracionMin"].mean())
     guardar(nf, "netflix_titles_Actualizado.csv")
 
-    # ===================== PREGUNTAS CLAVE =====================
+    # PREGUNTAS CLAVE
     st.header("5. Preguntas Clave")
 
-    st.subheader("10 Titulos mas recientes")
-    recientes = nf.sort_values("AnioAgregado", ascending=False).head(10)
-    st.dataframe(recientes[["title","AnioAgregado"]])
-
-    st.subheader("Paises con mas producciones")
-    paises = nf["country"].value_counts().head(10)
-    st.dataframe(paises)
+    st.dataframe(nf.sort_values("AnioAgregado", ascending=False).head(10)[["title","AnioAgregado"]])
+    st.dataframe(nf["country"].value_counts().head(10))
